@@ -1,28 +1,29 @@
 import { Injectable } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { Book } from './book.model';
 import { CreateBookInput } from './create-book.input';
 import { UpdateBookInput } from './update-book.input';
 
 @Injectable()
 export class BooksService {
-  private readonly books: Book[] = [];
+  constructor(
+    @InjectRepository(Book)
+    private booksRepository: Repository<Book>,
+  ) {}
 
-  findAll(): Book[] {
-    return this.books;
+  async findAll(): Promise<Book[]> {
+    return this.booksRepository.find();
   }
 
-  create(createBookInput: CreateBookInput): Book {
-    const book: Book = { ...createBookInput, id: uuidv4() };
-    this.books.push(book);
-    return book;
+  async create(createBookInput: CreateBookInput): Promise<Book> {
+    const bookCreated = this.booksRepository.create(createBookInput);
+    return this.booksRepository.save(bookCreated);
   }
 
-  update(id: string, input: UpdateBookInput): Book {
-    const bookIndex = this.books.findIndex((book) => book.id === id);
-    const book = this.books[bookIndex];
-    const updatedBook = Object.assign(book, input);
-    this.books[bookIndex] = updatedBook;
-    return updatedBook;
+  async update(id: string, input: UpdateBookInput): Promise<Book> {
+    const book = await this.booksRepository.findOneOrFail(id);
+    const bookUpdated = Object.assign(book, input);
+    return this.booksRepository.save(bookUpdated);
   }
 }
